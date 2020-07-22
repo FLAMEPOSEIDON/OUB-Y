@@ -22,8 +22,7 @@ from userbot.events import register
 from mimetypes import guess_type
 import httplib2
 import subprocess
-from userbot.modules.upload_download import progress, time_formatter
-from userbot.modules.www import speed_convert_bit
+from userbot.modules.upload_download import progress, humanbytes, time_formatter
 
 # Path to token json file, it should be in same directory as script
 G_DRIVE_TOKEN_FILE = "./auth_token.txt"
@@ -40,7 +39,7 @@ parent_id = GDRIVE_FOLDER_ID
 G_DRIVE_DIR_MIME_TYPE = "application/vnd.google-apps.folder"
 
 
-@register(pattern=r"^.gdrive(?: |$)([\s\S]*)", outgoing=True)
+@register(pattern=r"^.gdrive(?: |$)(.*)", outgoing=True)
 async def gdrive_upload_function(dryb):
     """ For .gdrive command, upload files to google drive. """
     await dryb.edit("Processing ...")
@@ -72,7 +71,7 @@ async def gdrive_upload_function(dryb):
             now = time.time()
             diff = now - c_time
             percentage = downloader.get_progress() * 100
-            speed = downloader.get_speed(human=True)
+            speed = downloader.get_speed()
             elapsed_time = round(diff) * 1000
             progress_str = "[{0}{1}] {2}%".format(
                 ''.join(["▰" for i in range(math.floor(percentage / 10))]),
@@ -85,8 +84,7 @@ async def gdrive_upload_function(dryb):
                 \nURL: {url}\
                 \nFile Name: {file_name}\
                 \n{progress_str}\
-                \n{speed_convert_bit(downloaded)} of {speed_convert_bit(total_length)}\
-                \nSPEED : {speed}\
+                \n{humanbytes(downloaded)} of {humanbytes(total_length)}\
                 \nETA: {estimated_total_time}"
 
                 if round(diff %
@@ -156,7 +154,7 @@ async def gdrive_upload_function(dryb):
                 f"Error while Uploading to Google Drive\nError Code:\n`{e}`")
 
 
-@register(pattern=r"^.ggd(?: |$)([\s\S]*)", outgoing=True)
+@register(pattern=r"^.ggd(?: |$)(.*)", outgoing=True)
 async def upload_dir_to_gdrive(event):
     await event.edit("Processing ...")
     if CLIENT_ID is None or CLIENT_SECRET is None:
@@ -183,7 +181,7 @@ async def upload_dir_to_gdrive(event):
         await event.edit(f"Directory {input_str} does not seem to exist")
 
 
-@register(pattern=r"^.list(?: |$)([\s\S]*)", outgoing=True)
+@register(pattern=r"^.list(?: |$)(.*)", outgoing=True)
 async def gdrive_search_list(event):
     await event.edit("Processing ...")
     if CLIENT_ID is None or CLIENT_SECRET is None:
@@ -400,9 +398,9 @@ async def gdrive_list_file_md(service, file_id):
             # is a file.
             file_meta_data["mimeType"] = file["mimeType"]
             file_meta_data["md5Checksum"] = file["md5Checksum"]
-            file_meta_data["fileSize"] = str(speed_convert_bit(int(file["fileSize"])))
+            file_meta_data["fileSize"] = str(humanbytes(int(file["fileSize"])))
             file_meta_data["quotaBytesUsed"] = str(
-                speed_convert_bit(int(file["quotaBytesUsed"])))
+                humanbytes(int(file["quotaBytesUsed"])))
             file_meta_data["previewURL"] = file["downloadUrl"]
         return json.dumps(file_meta_data, sort_keys=True, indent=4)
     except Exception as e:
@@ -438,10 +436,7 @@ async def gdrive_search(http, search_query):
         except Exception as e:
             res += str(e)
             break
-    if search_query:
-        msg = f"**Google Drive Query**:\n`{search_query}`\n\n**Results**\n\n{res}"
-    else:
-        msg = f"**Google Drive Query**:\n\n**Results**\n\n{res}"
+    msg = f"**Google Drive Query**:\n`{search_query}`\n\n**Results**\n\n{res}"
     return msg
 
 
